@@ -1,0 +1,15 @@
+[Unit]
+Description=Gunicorn instance to serve hawk-fast-api
+After=network.target
+
+[Service]
+User=nginx
+Group=hawkuser
+WorkingDirectory=/data2/var/www/hawk-fast-api
+Environment="PATH=/data2/var/www/hawk-fast-api/.venv/bin"
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+ExecStart=/data2/var/www/hawk-fast-api/.venv/bin/gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app
+
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,12 @@
+###
+
+GET http://localhost:8009/v1/sa_kpi/daily/region/standard?region=CENTRAL
+accept: application/json
+
+###
+
+GET http://localhost:8009/v1/sa_kpi/daily/region/flex?region=SARAWAK
+accept: application/json
+
+###
+GET http://localhost:8009/

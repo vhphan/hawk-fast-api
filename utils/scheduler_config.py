@@ -1,0 +1,2 @@
+TECHS = ['nr', 'lte']
+REGIONS = ['ALL', 'SABAH', 'SARAWAK', 'CENTRAL', 'NORTHERN', 'SOUTHERN', 'EASTERN']

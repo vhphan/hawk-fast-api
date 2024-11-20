@@ -1,0 +1,13 @@
+{
+  "app_type": "wsgi",
+  "startup_file": "passenger_wsgi.py",
+  "environment": "production",
+  "port": 3388,
+  "daemonize": true,
+  "user": "hawkuser",
+  "min_instances": 2,
+  "python": "/data2/var/www/hawk-fast-api/.venv/bin/python",
+  "envvars": {
+    "proctitle": "__hawk_fast_api_passenger__"
+  }
+}
