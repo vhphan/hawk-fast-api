@@ -2,6 +2,7 @@ import os
 
 import pandas as pd
 import psycopg2
+from attr import dataclass
 from dotenv import load_dotenv
 
 from databases.database import Database
@@ -29,13 +30,29 @@ class PgDB(Database):
             password=os.getenv("PG_PASSWORD"),
             database=os.getenv("PG_DATABASE"),
             # options=f"-c search_path={os.getenv('PG_SCHEMA')}"
+            options=f"-c application_name=pgdb.py"
         )
 
-    def query(self, sql_statement, params=None):
+    def query(self, sql_statement, params=None, return_json=False):
         if params is None:
             params = ()
         self.cursor.execute(sql_statement, params)
+        if self.connection.notices:
+            self.show_notices()
+        if return_json:
+            data = self.cursor.fetchall()
+            data_cols = [desc[0] for desc in self.cursor.description]
+            return [{data_cols[i]: value for i, value in enumerate(row)} for row in data]
         return self.cursor.fetchall(), [desc[0] for desc in self.cursor.description]
+
+    def show_notices(self):
+        for notice in self.connection.notices:
+            print(notice)
+
+    def execute(self, sql_statement, params=None):
+        if params is None:
+            params = ()
+        self.cursor.execute(sql_statement, params)
 
     def query_df(self, sql_statement, params=None):
         results, columns = self.query(sql_statement, params)

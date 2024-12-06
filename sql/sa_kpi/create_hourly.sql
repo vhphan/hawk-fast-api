@@ -162,6 +162,55 @@ from dt2;
 
 -- alter table hourly_stats.dc_e_nr_events_nrcelldu_flex_sa_raw add column flex_filtername_prefix varchar(50) generated always as (split_part((flex_filtername)::text, '_'::text, 1)) stored;
 
+insert into sa_kpi_results_hourly.dc_e_nr_events_nrcellcu_flex_sa_raw
+with dt as (select t1.date_id,
+                   nrcellcu,
+                   "Region",
+                   "Cluster_ID",
+                   flex_filtername,
+                   nr_name,
+                   ho_success_rate_5g_nom,
+                   ho_success_rate_5g_den,
+                   inter_rat_ho_success_rate_nom,
+                   inter_rat_ho_success_rate_den,
+                   eps_fallback_attempt,
+                   average_number_of_user_rrc_nom,
+                   average_number_of_user_rrc_den,
+                   sa_max_rrc_connected_user_no
+            from hourly_stats.dc_e_nr_events_nrcellcu_flex_sa_raw t1
+                     inner join dnb.rfdb.ob_cells_ref ob
+                                on t1.nrcellcu = ob."Cellname"
+                                    and t1.date_id >= ob.on_board_date::date
+            where t1.date_id not in (select date_id
+                                     from sa_kpi_results_hourly.dc_e_nr_events_nrcellcu_flex_sa_raw
+                                     group by date_id)
+            and t1.date_id >= current_date - interval '14 days'
+            ),
+     dt2 as (select date_id,
+                    "Region"                            as region,
+                    "Cluster_ID"                        as cluster_id,
+                    flex_filtername,
+                    sum(ho_success_rate_5g_nom)         as ho_success_rate_5g_nom,
+                    sum(ho_success_rate_5g_den)         as ho_success_rate_5g_den,
+                    sum(inter_rat_ho_success_rate_nom)  as inter_rat_ho_success_rate_nom,
+                    sum(inter_rat_ho_success_rate_den)  as inter_rat_ho_success_rate_den,
+                    sum(eps_fallback_attempt)           as eps_fallback_attempt,
+                    sum(average_number_of_user_rrc_nom) as average_number_of_user_rrc_nom,
+                    sum(average_number_of_user_rrc_den) as average_number_of_user_rrc_den,
+                    sum(sa_max_rrc_connected_user_no)   as sa_max_rrc_connected_user_no
+             from dt
+             group by date_id, flex_filtername, rollup ("Region", "Cluster_ID"))
+select date_id,
+       case when region is null then 'ALL' else region end                   as region,
+       case when cluster_id is null then 'ALL' else cluster_id end           as cluster_id,
+       rfdb.lookup_mno_using_mccmnc(flex_filtername)                         as mno,
+       100 * ho_success_rate_5g_nom ||| ho_success_rate_5g_den               as ho_success_rate_5g,
+       100 * inter_rat_ho_success_rate_nom ||| inter_rat_ho_success_rate_den as inter_rat_ho_success_rate,
+       eps_fallback_attempt,
+       average_number_of_user_rrc_nom ||| average_number_of_user_rrc_den     as average_number_of_user_rrc,
+       sa_max_rrc_connected_user_no
+from dt2;
+
 insert into sa_kpi_results_hourly.dc_e_nr_events_nrcelldu_flex_sa_raw
 with dt as (select t1.date_id,
                    nrcelldu,
@@ -231,100 +280,6 @@ select date_id,
        total_traffic_volume_gb_nom ||| 1073741824 as total_traffic_volume_gb
 from dt2;
 
-
-
-insert into sa_kpi_results_hourly.dc_e_nr_events_nrcellcu_flex_sa_raw
-with dt as (select t1.date_id,
-                   nrcellcu,
-                   "Region",
-                   "Cluster_ID",
-                   flex_filtername,
-                   nr_name,
-                   ho_success_rate_5g_nom,
-                   ho_success_rate_5g_den,
-                   inter_rat_ho_success_rate_nom,
-                   inter_rat_ho_success_rate_den,
-                   eps_fallback_attempt,
-                   average_number_of_user_rrc_nom,
-                   average_number_of_user_rrc_den,
-                   sa_max_rrc_connected_user_no
-            from hourly_stats.dc_e_nr_events_nrcellcu_flex_sa_raw t1
-                     inner join dnb.rfdb.ob_cells_ref ob
-                                on t1.nrcellcu = ob."Cellname"
-                                    and t1.date_id >= ob.on_board_date::date
-            where t1.date_id not in (select date_id
-                                     from sa_kpi_results_hourly.dc_e_nr_events_nrcellcu_flex_sa_raw
-                                     group by date_id)
-            and t1.date_id >= current_date - interval '14 days'
-            ),
-     dt2 as (select date_id,
-                    "Region"                            as region,
-                    "Cluster_ID"                        as cluster_id,
-                    flex_filtername,
-                    sum(ho_success_rate_5g_nom)         as ho_success_rate_5g_nom,
-                    sum(ho_success_rate_5g_den)         as ho_success_rate_5g_den,
-                    sum(inter_rat_ho_success_rate_nom)  as inter_rat_ho_success_rate_nom,
-                    sum(inter_rat_ho_success_rate_den)  as inter_rat_ho_success_rate_den,
-                    sum(eps_fallback_attempt)           as eps_fallback_attempt,
-                    sum(average_number_of_user_rrc_nom) as average_number_of_user_rrc_nom,
-                    sum(average_number_of_user_rrc_den) as average_number_of_user_rrc_den,
-                    sum(sa_max_rrc_connected_user_no)   as sa_max_rrc_connected_user_no
-             from dt
-             group by date_id, flex_filtername, rollup ("Region", "Cluster_ID"))
-select date_id,
-       case when region is null then 'ALL' else region end                   as region,
-       case when cluster_id is null then 'ALL' else cluster_id end           as cluster_id,
-       rfdb.lookup_mno_using_mccmnc(flex_filtername)                         as mno,
-       100 * ho_success_rate_5g_nom ||| ho_success_rate_5g_den               as ho_success_rate_5g,
-       100 * inter_rat_ho_success_rate_nom ||| inter_rat_ho_success_rate_den as inter_rat_ho_success_rate,
-       eps_fallback_attempt,
-       average_number_of_user_rrc_nom ||| average_number_of_user_rrc_den     as average_number_of_user_rrc,
-       sa_max_rrc_connected_user_no
-from dt2;
-
-insert into sa_kpi_results_hourly.dl_prb_sa_nsa_flex_extended_raw
-with dt as (select t1.date_id,
-                   nrcelldu,
-                   mno,
-                   nr_name,
-                   dl_prb_utilization_nom,
-                   dl_prb_utilization_den,
-                   ul_prb_utilization_nom,
-                   ul_prb_utilization_den,
-                   "Cellname",
-                   dnb_index,
-                   "Site_Name",
-                   on_board_date,
-                   "Region",
-                   "Cluster_ID",
-                   "DISTRICT",
-                   "MCMC_State"
-            from hourly_stats.dl_prb_sa_nsa_flex_extended_raw t1
-                     inner join dnb.rfdb.ob_cells_ref ob
-                                on t1.nrcelldu = ob."Cellname"
-                                    and t1.date_id >= ob.on_board_date::date
-            where t1.date_id not in (select date_id
-                                     from sa_kpi_results_hourly.dl_prb_sa_nsa_flex_extended_raw
-                                     group by date_id)
-            and t1.date_id >= current_date - interval '14 days'),
-     dt2 as (select date_id,
-                    "Region"                          as region,
-                    "Cluster_ID"                      as cluster_id,
-                    mno,
-                    100 * sum(dl_prb_utilization_nom) as dl_prb_utilization_nom,
-                    100 * sum(dl_prb_utilization_den) as dl_prb_utilization_den,
-                    100 * sum(ul_prb_utilization_nom) as ul_prb_utilization_nom,
-                    100 * sum(ul_prb_utilization_den) as ul_prb_utilization_den
-             from dt
-             group by date_id, mno, rollup ("Region", "Cluster_ID"))
-select date_id,
-       case when region is null then 'ALL' else region end,
-       case when cluster_id is null then 'ALL' else cluster_id end,
-       mno,
-       dl_prb_utilization_nom ||| dl_prb_utilization_den as dl_prb_utilization,
-       ul_prb_utilization_nom ||| ul_prb_utilization_den as ul_prb_utilization
-from dt2;
-
 insert into sa_kpi_results_hourly.dc_e_nr_events_nrcellcu_v_flex_sa_raw
 with dt as (select dt.date_id,
                    nrcellcu,
@@ -374,3 +329,45 @@ select date_id,
        sa_data_session_abnormal_release_den                                        as sa_data_session_abnormal_release
 from dt2;
 
+insert into sa_kpi_results_hourly.dl_prb_sa_nsa_flex_extended_raw
+with dt as (select t1.date_id,
+                   nrcelldu,
+                   mno,
+                   nr_name,
+                   dl_prb_utilization_nom,
+                   dl_prb_utilization_den,
+                   ul_prb_utilization_nom,
+                   ul_prb_utilization_den,
+                   "Cellname",
+                   dnb_index,
+                   "Site_Name",
+                   on_board_date,
+                   "Region",
+                   "Cluster_ID",
+                   "DISTRICT",
+                   "MCMC_State"
+            from hourly_stats.dl_prb_sa_nsa_flex_extended_raw t1
+                     inner join dnb.rfdb.ob_cells_ref ob
+                                on t1.nrcelldu = ob."Cellname"
+                                    and t1.date_id >= ob.on_board_date::date
+            where t1.date_id not in (select date_id
+                                     from sa_kpi_results_hourly.dl_prb_sa_nsa_flex_extended_raw
+                                     group by date_id)
+            and t1.date_id >= current_date - interval '14 days'),
+     dt2 as (select date_id,
+                    "Region"                          as region,
+                    "Cluster_ID"                      as cluster_id,
+                    mno,
+                    100 * sum(dl_prb_utilization_nom) as dl_prb_utilization_nom,
+                    100 * sum(dl_prb_utilization_den) as dl_prb_utilization_den,
+                    100 * sum(ul_prb_utilization_nom) as ul_prb_utilization_nom,
+                    100 * sum(ul_prb_utilization_den) as ul_prb_utilization_den
+             from dt
+             group by date_id, mno, rollup ("Region", "Cluster_ID"))
+select date_id,
+       case when region is null then 'ALL' else region end,
+       case when cluster_id is null then 'ALL' else cluster_id end,
+       mno,
+       dl_prb_utilization_nom ||| dl_prb_utilization_den as dl_prb_utilization,
+       ul_prb_utilization_nom ||| ul_prb_utilization_den as ul_prb_utilization
+from dt2;

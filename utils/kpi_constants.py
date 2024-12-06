@@ -15,7 +15,10 @@ class GroupBy(Enum):
     REGION = 'region'
     CLUSTER = 'cluster'
     CELLS = 'cells'
+    NO_GROUP = 'no_group'
+
 
 TransformFunction = Callable[[int, int, list[dict[str, Any]], GroupBy], dict[str, Any]]
 
-DAILY_MAX_POINTS = 31
+DAILY_MAX_POINTS = 60
+HOURLY_MAX_POINTS = 14 * 24

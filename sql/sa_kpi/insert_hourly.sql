@@ -2,7 +2,7 @@ insert into sa_kpi_results_hourly.dc_e_nr_events_nrcellcu_standard_sa_raw
 with dt as (select t1.date_id,
                    nrcellcu,
                    "Region",
-                   "Cluster_ID",
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID",
                    nr_name,
                    ho_success_rate_5g_nom,
                    ho_success_rate_5g_den,
@@ -16,7 +16,7 @@ with dt as (select t1.date_id,
                      inner join dnb.rfdb.ob_cells_ref ob
                                 on t1.nrcellcu = ob."Cellname"
                                     and t1.date_id >= ob.on_board_date::date
-            where t1.date_id not in (select date_id
+            where t1.date_id >= current_date - interval '14 days' and t1.date_id not in (select date_id
                                      from sa_kpi_results_hourly.dc_e_nr_events_nrcellcu_standard_sa_raw
                                      group by date_id)),
      dt2 as (select date_id,
@@ -31,7 +31,7 @@ with dt as (select t1.date_id,
                     sum(average_number_of_user_rrc_den) as average_number_of_user_rrc_den,
                     sum(sa_max_rrc_connected_user_no)   as sa_max_rrc_connected_user_no
              from dt
-             where date_id >= current_date - interval '14 days'
+
              group by date_id, rollup ("Region", "Cluster_ID"))
 select date_id,
        case when region is null then 'ALL' else region end,
@@ -47,7 +47,7 @@ insert into sa_kpi_results_hourly.dc_e_nr_events_nrcelldu_standard_sa_raw
 with dt as (select t1.date_id,
                    nrcelldu,
                    "Region",
-                   "Cluster_ID",
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID",
                    nr_name,
                    mean_user_dl_throughput_nr_nom,
                    mean_user_dl_throughput_nr_den,
@@ -70,7 +70,7 @@ with dt as (select t1.date_id,
                      inner join dnb.rfdb.ob_cells_ref ob
                                 on t1.nrcelldu = ob."Cellname"
                                     and t1.date_id >= ob.on_board_date::date
-            where t1.date_id not in (select date_id
+            where t1.date_id >= current_date - interval '14 days' and t1.date_id not in (select date_id
                                      from sa_kpi_results_hourly.dc_e_nr_events_nrcelldu_standard_sa_raw
                                      group by date_id)),
      dt2 as (select date_id,
@@ -114,7 +114,7 @@ insert into sa_kpi_results_hourly.dc_e_nr_events_nrcellcu_v_standard_sa_raw
 with dt as (select t1.date_id,
                    nrcellcu,
                    "Region",
-                   "Cluster_ID",
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID",
                    nr_name,
                    vonr_call_setup_success_rate_nom,
                    vonr_call_setup_success_rate_den,
@@ -128,7 +128,7 @@ with dt as (select t1.date_id,
                      inner join dnb.rfdb.ob_cells_ref ob
                                 on t1.nrcellcu = ob."Cellname"
                                     and t1.date_id >= ob.on_board_date::date
-            where t1.date_id not in (select date_id
+            where t1.date_id >= current_date - interval '14 days' and t1.date_id not in (select date_id
                                      from sa_kpi_results_hourly.dc_e_nr_events_nrcellcu_v_standard_sa_raw
                                      group by date_id)),
      dt2 as (select date_id,
@@ -155,11 +155,13 @@ select date_id,
        sa_data_session_abnormal_release_den                                        as sa_data_session_abnormal_release
 from dt2;
 
+
+-- duplicate error here
 insert into sa_kpi_results_hourly.dc_e_nr_events_nrcelldu_flex_sa_raw
 with dt as (select t1.date_id,
                    nrcelldu,
                    "Region",
-                   "Cluster_ID",
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID",
                    nr_name,
                    split_part(flex_filtername, '_', 1) as flex_filtername,
                    mean_user_dl_throughput_nr_nom,
@@ -183,7 +185,7 @@ with dt as (select t1.date_id,
                      inner join dnb.rfdb.ob_cells_ref ob
                                 on t1.nrcelldu = ob."Cellname"
                                     and t1.date_id >= ob.on_board_date::date
-            where t1.date_id not in (select date_id
+            where (t1.date_id >= current_date - interval '14 days') and t1.date_id not in (select date_id
                                      from sa_kpi_results_hourly.dc_e_nr_events_nrcelldu_flex_sa_raw
                                      group by date_id)),
      dt2 as (select date_id,
@@ -226,7 +228,7 @@ insert into sa_kpi_results_hourly.dc_e_nr_events_nrcellcu_flex_sa_raw
 with dt as (select t1.date_id,
                    nrcellcu,
                    "Region",
-                   "Cluster_ID",
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID",
                    flex_filtername,
                    nr_name,
                    ho_success_rate_5g_nom,
@@ -241,7 +243,7 @@ with dt as (select t1.date_id,
                      inner join dnb.rfdb.ob_cells_ref ob
                                 on t1.nrcellcu = ob."Cellname"
                                     and t1.date_id >= ob.on_board_date::date
-            where t1.date_id not in (select date_id
+            where t1.date_id >= current_date - interval '14 days' and t1.date_id not in (select date_id
                                      from sa_kpi_results_hourly.dc_e_nr_events_nrcellcu_flex_sa_raw
                                      group by date_id)),
      dt2 as (select date_id,
@@ -283,14 +285,12 @@ with dt as (select t1.date_id,
                    "Site_Name",
                    on_board_date,
                    "Region",
-                   "Cluster_ID",
-                   "DISTRICT",
-                   "MCMC_State"
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID"
             from hourly_stats.dl_prb_sa_nsa_flex_extended_raw t1
                      inner join dnb.rfdb.ob_cells_ref ob
                                 on t1.nrcelldu = ob."Cellname"
                                     and t1.date_id >= ob.on_board_date::date
-            where t1.date_id not in (select date_id
+            where t1.date_id >= current_date - interval '14 days' and t1.date_id not in (select date_id
                                      from sa_kpi_results_hourly.dl_prb_sa_nsa_flex_extended_raw
                                      group by date_id)),
      dt2 as (select date_id,
@@ -304,18 +304,18 @@ with dt as (select t1.date_id,
              from dt
              group by date_id, mno, rollup ("Region", "Cluster_ID"))
 select date_id,
-       case when region is null then 'ALL' else region end,
-       case when cluster_id is null then 'ALL' else cluster_id end,
+       case when region is null then 'ALL' else region end as region,
+       case when cluster_id is null then 'ALL' else cluster_id end as cluster_id,
        mno,
        dl_prb_utilization_nom ||| dl_prb_utilization_den as dl_prb_utilization,
        ul_prb_utilization_nom ||| ul_prb_utilization_den as ul_prb_utilization
 from dt2;
 
 insert into sa_kpi_results_hourly.dc_e_nr_events_nrcellcu_v_flex_sa_raw
-with dt as (select dt.date_id,
+with dt as (select t1.date_id,
                    nrcellcu,
                    "Region",
-                   "Cluster_ID",
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID",
                    nr_name,
                    flex_filtername,
                    vonr_call_setup_success_rate_nom,
@@ -326,11 +326,11 @@ with dt as (select dt.date_id,
                    sa_data_session_setup_success_rate_den,
                    sa_data_session_abnormal_release_nom,
                    sa_data_session_abnormal_release_den
-            from hourly_stats.dc_e_nr_events_nrcellcu_v_flex_sa_raw dt
+            from hourly_stats.dc_e_nr_events_nrcellcu_v_flex_sa_raw t1
                      inner join dnb.rfdb.ob_cells_ref ob
-                                on dt.nrcellcu = ob."Cellname"
-                                    and dt.date_id >= ob.on_board_date::date
-            where dt.date_id not in (select date_id
+                                on t1.nrcellcu = ob."Cellname"
+                                    and t1.date_id >= ob.on_board_date::date
+            where t1.date_id >= current_date - interval '14 days' and t1.date_id not in (select date_id
                                      from sa_kpi_results_hourly.dc_e_nr_events_nrcellcu_v_flex_sa_raw
                                      group by date_id)),
      dt2 as (select date_id,

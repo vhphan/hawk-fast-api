@@ -5,12 +5,14 @@ from datetime import datetime
 from async_lru import alru_cache
 from fastapi import APIRouter, Depends
 from fastapi import Response
+from loguru import logger
 from starlette.requests import Request
 
 from databases.apgdb import get_db, PgDB
 from utils.kpi import standard_kpi_transform, flex_kpi_transform
-from utils.kpi_constants import GroupBy, TransformFunction, DAILY_MAX_POINTS
-from utils.sql_queries import daily_cluster_queries, daily_cells_queries, hourly_cells_queries
+from utils.kpi_constants import GroupBy, TransformFunction, DAILY_MAX_POINTS, HOURLY_MAX_POINTS
+from utils.sql_queries import daily_cluster_queries, hourly_cells_queries
+from utils.tasks import clock
 
 router = APIRouter()
 
@@ -58,54 +60,55 @@ def region_stats(kpi_type: str, time_unit: str):
         'data': data,
         'meta': {
             'kpi_type': kpi_type,
-            'current_time': datetime.now()
+            'date_timestamp': datetime.now()
         }
     }
 
 
 @router.post("/cells/{time_unit}/{kpi_type}")
-async def daily_cell_stats(time_unit: str, kpi_type: str, request: Request, db: PgDB = Depends(get_db)):
+@clock
+async def cell_stats(time_unit: str, kpi_type: str, request: Request, db: PgDB = Depends(get_db)):
     match kpi_type, time_unit:
-        case 'standard', 'daily':
-            sql_query = daily_cells_queries['standard']
+        # case 'standard', 'daily':
+        #     sql_query = daily_cells_queries['standard_raw']
+        # case 'flex', 'daily':
+        #     sql_query = daily_cells_queries['flex_raw']
+
         case 'standard', 'hourly':
             sql_query = hourly_cells_queries['standard']
+        case 'flex', 'hourly':
+            sql_query = hourly_cells_queries['flex']
         case _:
-            return {'success': False, 'message': f"Invalid kpi_type: {kpi_type}"}
-    # extract list of cells from request body
+            return {'success': False, 'message': f"Invalid or unsupported kpi_type: {kpi_type}"}
+
     body = await request.json()
     cells_array: list[str] = body['cells']
 
-    async with db:
-        results = await db.query(sql_query, params={'cells_array': cells_array}, return_records=True)
-        return {
-            'success': True,
-            'data': results
-        }
-
-
-@router.post("/cells-raw/daily/{kpi_type}")
-async def daily_cell_stats_raw(kpi_type: str, request: Request, db: PgDB = Depends(get_db)):
-    match kpi_type:
-        case 'standard':
-            sql_queries: dict[str, str] = daily_cells_queries['standard_raw']
-        case _:
-            return {'success': False, 'message': f"Invalid kpi_type: {kpi_type}"}
-    # extract list of cells from request body
-    body = await request.json()
-    cells_array: list[str] = body['cells']
+    logger.debug(f"{sql_query=}")
 
     async with db:
         tasks = []
-        for sql in sql_queries.values():
-            tasks.append(db.query(sql, params={'cells_array': cells_array}, return_records=True))
+        for cell in cells_array:
+            tasks.append(db.query(sql_query, return_records=True, params={'cell': cell}))
 
         results = await asyncio.gather(*tasks)
-
-        return {
+        transform_func = standard_kpi_transform if kpi_type == 'standard' else flex_kpi_transform
+        max_points = HOURLY_MAX_POINTS if time_unit == 'hourly' else DAILY_MAX_POINTS
+        transformed = transform_func(max_points, 1, results[0], GroupBy.NO_GROUP, time_unit=time_unit)
+        final_response = {
             'success': True,
-            'data': dict(zip(sql_queries.keys(), results))
+            'data': transformed,
+            'meta': {
+                'cells': cells_array,
+                'data_timestamp': datetime.now()
+            }
         }
+        # save response as json file with timestamp in filename
+        # timestamp_str = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        # with open(f'static/data/{time_unit}_{kpi_type}_cells_{timestamp_str}.json', 'w') as f:
+        #     f.write(json.dumps(final_response, cls=DateTimeEncoder))
+        #     logger.info(f"Saving response to static/data/{time_unit}_{kpi_type}_cells_{timestamp_str}.json")
+        return final_response
 
 
 @alru_cache(maxsize=128)
@@ -122,15 +125,9 @@ async def get_cells_list(prefix: str, page: int, page_size: int, db: PgDB):
             for result in results
         ]
 
+
 @router.get("/cells-list/{prefix}/{page}")
 async def cell_list(prefix: str, page: int, db: PgDB = Depends(get_db), page_size: int = 100):
-    # data = await get_cells_list(prefix, page, page_size, db)
-    # return {
-    #     'success': True,
-    #     'data': data
-    # }, {
-    #     'Cache-Control': 'public, max-age=300'
-    # }
     data = await get_cells_list(prefix, page, page_size, db)
-    headers = {"Cache-Control": "public, max-age=300"}
+    headers = {"Cache-Control": "public, max-age=900"}
     return Response(content=json.dumps({"success": True, "data": data}), media_type="application/json", headers=headers)

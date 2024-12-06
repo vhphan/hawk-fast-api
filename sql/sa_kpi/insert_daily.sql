@@ -2,7 +2,7 @@ insert into sa_kpi_results.dc_e_nr_events_nrcellcu_standard_sa_day
 with dt as (select t1.date_id,
                    nrcellcu,
                    "Region",
-                   "Cluster_ID",
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID",
                    nr_name,
                    ho_success_rate_5g_nom,
                    ho_success_rate_5g_den,
@@ -38,7 +38,7 @@ select date_id,
        100 * ho_success_rate_5g_nom ||| ho_success_rate_5g_den               as ho_success_rate_5g,
        100 * inter_rat_ho_success_rate_nom ||| inter_rat_ho_success_rate_den as inter_rat_ho_success,
        eps_fallback_attempt,
-       average_number_of_user_rrc_nom ||| average_number_of_user_rrc_den               as average_number_of_user_rrc,
+       average_number_of_user_rrc_nom ||| average_number_of_user_rrc_den     as average_number_of_user_rrc,
        sa_max_rrc_connected_user_no
 from dt2;
 
@@ -46,7 +46,7 @@ insert into sa_kpi_results.dc_e_nr_events_nrcelldu_standard_sa_day
 with dt as (select t1.date_id,
                    nrcelldu,
                    "Region",
-                   "Cluster_ID",
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID",
                    nr_name,
                    mean_user_dl_throughput_nr_nom,
                    mean_user_dl_throughput_nr_den,
@@ -113,7 +113,7 @@ insert into sa_kpi_results.dc_e_nr_events_nrcellcu_v_standard_sa_day
 with dt as (select t1.date_id,
                    nrcellcu,
                    "Region",
-                   "Cluster_ID",
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID",
                    nr_name,
                    vonr_call_setup_success_rate_nom,
                    vonr_call_setup_success_rate_den,
@@ -158,9 +158,9 @@ insert into sa_kpi_results.dc_e_nr_events_nrcelldu_flex_sa_day
 with dt as (select t1.date_id,
                    nrcelldu,
                    "Region",
-                   "Cluster_ID",
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID",
                    nr_name,
-                   flex_filtername_prefix as flex_filtername,
+                   flex_filtername_prefix                                                 as flex_filtername,
                    mean_user_dl_throughput_nr_nom,
                    mean_user_dl_throughput_nr_den,
                    mean_user_ul_throughput_nr_nom,
@@ -218,14 +218,14 @@ select date_id,
        100 * dl_64qam_nom ||| modulation_dl_den                          as dl_64qam,
        100 * dl_256qam_nom ||| modulation_dl_den                         as dl_256qam,
        100 * rrc_resume_sr_nom ||| rrc_resume_sr_den                     as rrc_resume_sr,
-       total_traffic_volume_gb_nom ||| 1073741824 as total_traffic_volume_gb
+       total_traffic_volume_gb_nom ||| 1073741824                        as total_traffic_volume_gb
 from dt2;
 
 insert into sa_kpi_results.dc_e_nr_events_nrcellcu_flex_sa_day
 with dt as (select t1.date_id,
                    nrcellcu,
                    "Region",
-                   "Cluster_ID",
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID",
                    flex_filtername,
                    nr_name,
                    ho_success_rate_5g_nom,
@@ -282,9 +282,7 @@ with dt as (select t1.date_id,
                    "Site_Name",
                    on_board_date,
                    "Region",
-                   "Cluster_ID",
-                   "DISTRICT",
-                   "MCMC_State"
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID"
             from daily_stats.dl_prb_sa_nsa_flex_extended_day t1
                      inner join dnb.rfdb.ob_cells_ref ob
                                 on t1.nrcelldu = ob."Cellname"
@@ -311,10 +309,10 @@ select date_id,
 from dt2;
 
 insert into sa_kpi_results.dc_e_nr_events_nrcellcu_v_flex_sa_day
-with dt as (select dt.date_id,
+with dt as (select t1.date_id,
                    nrcellcu,
                    "Region",
-                   "Cluster_ID",
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID",
                    nr_name,
                    flex_filtername,
                    vonr_call_setup_success_rate_nom,
@@ -325,11 +323,11 @@ with dt as (select dt.date_id,
                    sa_data_session_setup_success_rate_den,
                    sa_data_session_abnormal_release_nom,
                    sa_data_session_abnormal_release_den
-            from daily_stats.dc_e_nr_events_nrcellcu_v_flex_sa_day dt
+            from daily_stats.dc_e_nr_events_nrcellcu_v_flex_sa_day t1
                      inner join dnb.rfdb.ob_cells_ref ob
-                                on dt.nrcellcu = ob."Cellname"
-                                    and dt.date_id >= ob.on_board_date::date
-            where dt.date_id not in (select date_id
+                                on t1.nrcellcu = ob."Cellname"
+                                    and t1.date_id >= ob.on_board_date::date
+            where t1.date_id not in (select date_id
                                      from sa_kpi_results.dc_e_nr_events_nrcellcu_v_flex_sa_day
                                      group by date_id)),
      dt2 as (select date_id,
@@ -357,3 +355,4 @@ select date_id,
        100 * sa_data_session_abnormal_release_nom |||
        sa_data_session_abnormal_release_den                                        as sa_data_session_abnormal_release
 from dt2;
+

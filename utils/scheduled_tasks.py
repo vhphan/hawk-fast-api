@@ -73,7 +73,14 @@ async def main():
 
     for region in REGIONS:
         for tech in TECHS:
-            schedule.every(5).minutes.do(lambda: asyncio.create_task(check_end_point(region=region, tech=tech)))
+            schedule.every(10).minutes.do(
+                lambda: asyncio.create_task(check_end_point(region=region, tech=tech, endpoint='dailyStatsRegion')))
+            schedule.every(10).minutes.do(
+                lambda: asyncio.create_task(check_end_point(region=region, tech=tech, endpoint='dailyStatsRegionFlex')))
+            schedule.every(10).minutes.do(
+                lambda: asyncio.create_task(check_end_point(region=region, tech=tech, endpoint='hourlyStatsRegion')))
+            schedule.every(10).minutes.do(
+                            lambda: asyncio.create_task(check_end_point(region=region, tech=tech, endpoint='hourlyStatsRegionFlex')))
 
     schedule.every(5).minutes.do(lambda: asyncio.create_task(check_end_point()))
     schedule.every().day.at("19:00").do(lambda: asyncio.create_task(run_timing_advance_etl()))

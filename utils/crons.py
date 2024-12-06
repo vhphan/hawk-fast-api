@@ -2,12 +2,15 @@ import asyncio
 import json
 from datetime import datetime, date
 from functools import partial
+from multiprocessing import Process
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from dotenv import load_dotenv
 from fastapi_utilities import repeat_every
 from loguru import logger
 
 from databases.apgdb import PgDB
+from sa_kpi.insert_cell_data import insert_hourly_cell_data
 from utils.kpi import standard_kpi_transform, flex_kpi_transform
 from utils.kpi_constants import GroupBy, DAILY_MAX_POINTS
 from utils.sql_queries import daily_region_queries, hourly_region_queries
@@ -64,7 +67,6 @@ async def generate_hourly_json_file_regions(kpi_type='standard'):
 
 
 async def insert_data_and_generate_json(time_unit='daily'):
-
     logger.info(f"Inserting {time_unit} data at {datetime.now()}")
 
     sql_file = {'daily': 'sql/sa_kpi/insert_daily.sql',
@@ -85,16 +87,25 @@ async def insert_data_and_generate_json(time_unit='daily'):
     await asyncio.gather(*tasks)
     logger.info(f"Finished generating {time_unit} json files at {datetime.now()}")
 
+
 @scheduler.scheduled_job('cron', hour=8, minute=30)
-@scheduler.scheduled_job('cron', hour=17, minute=9)
+@scheduler.scheduled_job('cron', hour=9, minute=30)
+@scheduler.scheduled_job('cron', hour=22, minute=20)
 async def insert_daily_data():
     await insert_data_and_generate_json('daily')
 
 
-@scheduler.scheduled_job('cron', minute=9)
-@scheduler.scheduled_job('cron', hour=14, minute=15)
+@scheduler.scheduled_job('cron', minute=0)
+@scheduler.scheduled_job('cron', minute=30)
 async def insert_hourly_data():
     await insert_data_and_generate_json('hourly')
+
+
+@scheduler.scheduled_job('cron', minute=7)
+def run_insert_cell_data_sa_kpi():
+    process = Process(target=insert_hourly_cell_data)
+    process.start()
+    process.join()
 
 
 async def execute_query(sql):
@@ -113,3 +124,10 @@ async def run_sql_file(sql_file):
             continue
         tasks.append(execute_query(sql))
     await asyncio.gather(*tasks)
+
+
+# async generate_cells_list():
+
+if __name__ == '__main__':
+    load_dotenv()
+    asyncio.run(insert_hourly_data())

@@ -1,11 +1,14 @@
 import asyncio
+import csv
 import os
 
+from async_lru import alru_cache
 from dotenv import load_dotenv
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
 from databases.database import Database
+from utils.tasks import clock
 
 
 class PgDB(Database):
@@ -35,6 +38,7 @@ class PgDB(Database):
             class_=AsyncSession
         )
 
+    @clock
     async def query(self, sql_statement, return_records=True, params=None):
         async with self.SessionLocal() as session:
             if params is None:
@@ -43,7 +47,8 @@ class PgDB(Database):
             rows = result.fetchall() if result.returns_rows else []
             columns = result.keys() if result.returns_rows else []
         if return_records:
-            return [dict(zip(columns, row)) for row in rows]
+            rows_ = [dict(zip(columns, row)) for row in rows]
+            return rows_
         return rows, columns
 
     async def execute(self, sql_statement, params=None):

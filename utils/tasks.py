@@ -15,6 +15,11 @@ def clock(func):
         arg_lst = [repr(arg) for arg in args]
         arg_lst.extend(f'{k}={v!r}' for k, v in kwargs.items())
         arg_str = ', '.join(arg_lst)
+        # truncate the result if it's too long
+        if len(str(result)) > 100:
+            result = str(result)[:20] + '...'
+        if len(arg_str) > 100:
+            arg_str = arg_str[:20] + '...'
         logger.info(f'[{elapsed:0.8f}s] {func_name}({arg_str}) -> {result!r}')
 
     @functools.wraps(func)
@@ -65,8 +70,8 @@ def retry_on_timeout(retries=1, delay=0):
 
 @retry_on_timeout(retries=1, delay=0)
 @clock
-async def check_end_point(timeout=25, region='ALL', tech='nr'):
-    url = f'http://localhost:4000/node/kpi/v1/dailyStatsRegion?region={region}&tech={tech}'
+async def check_end_point(timeout=25, region='ALL', tech='nr', endpoint='dailyStatsRegion'):
+    url = f'http://localhost:4000/node/kpi/v1/{endpoint}?region={region}&tech={tech}'
     async with aiohttp.ClientSession() as session:
         logger.info(f'Checking end point: {url}')
         async with session.get(url) as response:

@@ -163,3 +163,4 @@ cython_debug/
 *.pdf
 /static/apps/cap-reports/**
 /static/apps/**
+tmp
