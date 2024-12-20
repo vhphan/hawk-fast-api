@@ -4,7 +4,7 @@ from email.mime.text import MIMEText
 
 from loguru import logger
 
-from utils.utils import get_env
+from utils.helpers import get_env
 
 
 def send_mail(title, html_content, to_email, cc_email=None):

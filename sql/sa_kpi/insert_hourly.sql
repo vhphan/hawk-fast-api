@@ -155,8 +155,6 @@ select date_id,
        sa_data_session_abnormal_release_den                                        as sa_data_session_abnormal_release
 from dt2;
 
-
--- duplicate error here
 insert into sa_kpi_results_hourly.dc_e_nr_events_nrcelldu_flex_sa_raw
 with dt as (select t1.date_id,
                    nrcelldu,

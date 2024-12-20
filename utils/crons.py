@@ -10,7 +10,7 @@ from fastapi_utilities import repeat_every
 from loguru import logger
 
 from databases.apgdb import PgDB
-from sa_kpi.insert_cell_data import insert_hourly_cell_data
+from sa_kpi.insert_cell_data import insert_hourly_cell_data, insert_daily_cell_data
 from utils.kpi import standard_kpi_transform, flex_kpi_transform
 from utils.kpi_constants import GroupBy, DAILY_MAX_POINTS
 from utils.sql_queries import daily_region_queries, hourly_region_queries
@@ -102,8 +102,15 @@ async def insert_hourly_data():
 
 
 @scheduler.scheduled_job('cron', minute=7)
-def run_insert_cell_data_sa_kpi():
+def run_insert_hourlycell_data_sa_kpi():
     process = Process(target=insert_hourly_cell_data)
+    process.start()
+    process.join()
+
+
+@scheduler.scheduled_job('cron', hour=8, minute=55)
+def run_insert_daily_cell_data_sa_kpi():
+    process = Process(target=insert_daily_cell_data)
     process.start()
     process.join()
 

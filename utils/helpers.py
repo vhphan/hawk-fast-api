@@ -3,6 +3,8 @@ import os
 import fcntl
 from dotenv import load_dotenv
 
+from utils.tmux_helpers import check_tmux_session_exists
+
 
 def get_env(key: str) -> str:
     env_value = os.getenv(key)
@@ -31,6 +33,7 @@ def unlock_file(fd):
     os.close(fd)
     print("File unlocked successfully.")
 
+
 # # Example usage
 # file_path = 'tmp/master.lock'
 # try:
@@ -38,3 +41,5 @@ def unlock_file(fd):
 #     # Perform operations with the locked file
 # finally:
 #     unlock_file(fd)
+
+

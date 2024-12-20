@@ -90,7 +90,7 @@ async def main():
     schedule.every().tuesday.at("02:00").do(lambda: asyncio.create_task(run_etl_plmn()))
     schedule.every().wednesday.at("02:00").do(lambda: asyncio.create_task(run_etl_plmn()))
     schedule.every().thursday.at("02:00").do(lambda: asyncio.create_task(run_etl_plmn()))
-    schedule.every().monday.at("07:00").do(lambda: asyncio.create_task(run_busy_hour_tasks()))
+    schedule.every().monday.at("09:00").do(lambda: asyncio.create_task(run_busy_hour_tasks()))
 
     # schedule.every().hour.do(job)
     # schedule.every(5).seconds.do(job)

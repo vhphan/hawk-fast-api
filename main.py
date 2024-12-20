@@ -16,7 +16,7 @@ from routes.v1.api import router as v1_api
 from routes.v1.cap_reports import router as cap_reports_api
 from routes.v1.sa_kpi import router as sa_kpi_api
 from utils.crons import heartbeat, scheduler
-from utils.utils import lock_file, unlock_file
+from utils.helpers import lock_file, unlock_file
 
 load_dotenv()
 logger.add("logs/main.log", rotation="1 day", retention="1 day")
@@ -39,8 +39,11 @@ async def lifespan(app_: FastAPI):
 
     if lock_acquired:
         logger.info('Lock acquired. Starting crons')
-        scheduler.start()
-        asyncio.create_task(start_crons())
+        if os.getenv("NO_CRON", "false").lower() != "true":
+            scheduler.start()
+            asyncio.create_task(start_crons())
+        else:
+            logger.info("NO_CRON is set to True. Not starting crons")
 
     # redis = aioredis.from_url("redis://localhost")
     # FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
@@ -112,6 +115,7 @@ async def get_state(request: Request, key: str):
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8009)
+
 # nohup env proctitle=__uvi_fast__ uvicorn main:app --reload --host 0.0.0.0 --port 3388 > output.log 2>&1 &
 # kill -9 $(pgrep -f "uvicorn main:app --reload --host 0.0.0.0 --port 3388")
 # kill -9 $(pgrep -f __uvi_fast__)

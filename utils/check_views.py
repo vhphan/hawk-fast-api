@@ -7,7 +7,7 @@ from setproctitle import setproctitle
 
 from databases.pgdb import PgDB
 from utils.mailer import send_mail
-from utils.utils import get_env
+from utils.helpers import get_env
 
 
 def get_max_dates_of_views():
