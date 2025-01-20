@@ -115,6 +115,9 @@ def run_insert_daily_cell_data_sa_kpi():
     process.join()
 
 
+
+
+
 async def execute_query(sql):
     async with PgDB() as db:
         return await db.execute(sql)

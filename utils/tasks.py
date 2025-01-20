@@ -20,7 +20,8 @@ def clock(func):
             result = str(result)[:20] + '...'
         if len(arg_str) > 100:
             arg_str = arg_str[:20] + '...'
-        logger.info(f'[{elapsed:0.8f}s] {func_name}({arg_str}) -> {result!r}')
+        log_func = logger.info if elapsed < 10 else logger.warning
+        log_func(f'[{elapsed:0.8f}s] {func_name}({arg_str}) -> {result!r}')
 
     @functools.wraps(func)
     async def async_clocked(*args, **kwargs):
@@ -70,9 +71,10 @@ def retry_on_timeout(retries=1, delay=0):
 
 @retry_on_timeout(retries=1, delay=0)
 @clock
-async def check_end_point(timeout=25, region='ALL', tech='nr', endpoint='dailyStatsRegion'):
+async def check_end_point(timeout=25, region='ALL', tech='nr', endpoint='dailyStatsRegion', delay=0):
     url = f'http://localhost:4000/node/kpi/v1/{endpoint}?region={region}&tech={tech}'
     async with aiohttp.ClientSession() as session:
+        await asyncio.sleep(delay)
         logger.info(f'Checking end point: {url}')
         async with session.get(url) as response:
             if response.status == 200:

@@ -1,5 +1,4 @@
 import asyncio
-import os
 import time
 from datetime import datetime
 
@@ -7,6 +6,7 @@ import schedule
 from dotenv import load_dotenv
 from loguru import logger
 
+from utils.helpers import run_python_module
 from utils.scheduler_config import TECHS, REGIONS
 
 logger.add("logs/scheduled_tasks.log", rotation="1 day", retention="7 days")
@@ -71,16 +71,23 @@ async def main():
     schedule.every().day.at("02:30").do(hard_restart_node_passenger)
     schedule.every(15).minutes.do(heartbeat)
 
-    for region in REGIONS:
-        for tech in TECHS:
+    for i, region in enumerate(REGIONS):
+        for j, tech in enumerate(TECHS):
+            delay_duration = 2 * (i + j)
             schedule.every(10).minutes.do(
-                lambda: asyncio.create_task(check_end_point(region=region, tech=tech, endpoint='dailyStatsRegion')))
+                lambda: asyncio.create_task(
+                    check_end_point(region=region, tech=tech, endpoint='dailyStatsRegion', delay=delay_duration)))
             schedule.every(10).minutes.do(
-                lambda: asyncio.create_task(check_end_point(region=region, tech=tech, endpoint='dailyStatsRegionFlex')))
+                lambda: asyncio.create_task(
+                    check_end_point(region=region, tech=tech, endpoint='dailyStatsRegionFlex',
+                                    delay=delay_duration + 2)))
             schedule.every(10).minutes.do(
-                lambda: asyncio.create_task(check_end_point(region=region, tech=tech, endpoint='hourlyStatsRegion')))
+                lambda: asyncio.create_task(
+                    check_end_point(region=region, tech=tech, endpoint='hourlyStatsRegion', delay=delay_duration + 4)))
             schedule.every(10).minutes.do(
-                            lambda: asyncio.create_task(check_end_point(region=region, tech=tech, endpoint='hourlyStatsRegionFlex')))
+                lambda: asyncio.create_task(
+                    check_end_point(region=region, tech=tech, endpoint='hourlyStatsRegionFlex',
+                                    delay=delay_duration + 6)))
 
     schedule.every(5).minutes.do(lambda: asyncio.create_task(check_end_point()))
     schedule.every().day.at("19:00").do(lambda: asyncio.create_task(run_timing_advance_etl()))
@@ -110,19 +117,6 @@ async def main():
             break
 
         await asyncio.sleep(60)
-
-
-async def run_python_module(module_path, python_path, working_dir, callback=None):
-    logger.info(f'Running python module: {module_path}')
-    cur_dir = os.getcwd()
-    os.chdir(working_dir)
-    process = await asyncio.create_subprocess_exec(python_path, '-m', module_path)
-    await process.wait()
-    os.chdir(cur_dir)
-    logger.info(f'Finished running python module: {module_path}')
-    if callback:
-        callback()
-    return process
 
 
 if __name__ == '__main__':

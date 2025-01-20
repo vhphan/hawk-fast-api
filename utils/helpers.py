@@ -1,9 +1,9 @@
+import asyncio
 import os
 
 import fcntl
 from dotenv import load_dotenv
-
-from utils.tmux_helpers import check_tmux_session_exists
+from loguru import logger
 
 
 def get_env(key: str) -> str:
@@ -42,4 +42,34 @@ def unlock_file(fd):
 # finally:
 #     unlock_file(fd)
 
+async def run(cmd, working_dir=None):
+    cwd = os.getcwd()
+    if working_dir:
+        os.chdir(working_dir)
+    proc = await asyncio.create_subprocess_shell(
+        cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
 
+    stdout, stderr = await proc.communicate()
+
+    print(f'[{cmd!r} exited with {proc.returncode}]')
+    if stdout:
+        print(f'[stdout]\n{stdout.decode()}')
+    if stderr:
+        print(f'[stderr]\n{stderr.decode()}')
+    if working_dir:
+        os.chdir(cwd)
+
+
+async def run_python_module(module_path, python_path, working_dir, callback=None):
+    logger.info(f'Running python module: {module_path}')
+    cur_dir = os.getcwd()
+    os.chdir(working_dir)
+    process = await asyncio.create_subprocess_exec(python_path, '-m', module_path)
+    await process.wait()
+    os.chdir(cur_dir)
+    logger.info(f'Finished running python module: {module_path}')
+    if callback:
+        callback()
+    return process

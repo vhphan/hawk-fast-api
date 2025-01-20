@@ -109,7 +109,9 @@ hourly_cells_queries = {
         downlink_traffic_volume_nr_gb_nom ||| (1024 * 1024 * 1024)        as downlink_traffic_volume_nr_gb,
         total_traffic_volume_gb_nom ||| (1024 * 1024 * 1024)              as total_traffic_volume_gb
        
-        from dnb.sa_kpi_results_hourly.cell_standard where nrcellcu = :cell;
+        from dnb.sa_kpi_results_hourly.cell_standard where nrcellcu = :cell
+        and date_id >= current_date - 14
+        ;
     """,
 
     'flex': """
@@ -139,10 +141,11 @@ hourly_cells_queries = {
         uplink_traffic_volume_nr_gb_nom ||| (1024 * 1024 * 1024)          as uplink_traffic_volume_nr_gb,
         downlink_traffic_volume_nr_gb_nom ||| (1024 * 1024 * 1024)        as downlink_traffic_volume_nr_gb,
         total_traffic_volume_gb_nom ||| (1024 * 1024 * 1024)              as total_traffic_volume_gb, 
-        
         dl_prb_utilization_nom ||| dl_prb_utilization_den as dl_prb_utilization,
         ul_prb_utilization_nom ||| ul_prb_utilization_den as ul_prb_utilization
-         from dnb.sa_kpi_results_hourly.cell_flex where nrcellcu = :cell;
+         from dnb.sa_kpi_results_hourly.cell_flex where nrcellcu = :cell
+         and date_id >= current_date - 14
+         ;
     """,
 
     'standard_raw': {
