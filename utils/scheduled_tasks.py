@@ -66,45 +66,37 @@ async def run_busy_hour_tasks():
     await run_python_module(module_path_plmn, python_path, working_dir)
 
 
-async def main():
-    setproctitle('__scheduled_tasks__')
+async def main(debug=False):
+    if debug:
+        setproctitle('__scheduled_tasks_debug__')
+    else:
+        setproctitle('__scheduled_tasks__')
+
+    logger.add("logs/scheduled_tasks.log", rotation="1 day", retention="7 days")
     schedule.every().day.at("02:30").do(hard_restart_node_passenger)
     schedule.every(15).minutes.do(heartbeat)
 
+    endpoints = ['dailyStatsRegion', 'dailyStatsRegionFlex', 'hourlyStatsRegion', 'hourlyStatsRegionFlex']
+
     for i, region in enumerate(REGIONS):
         for j, tech in enumerate(TECHS):
-            delay_duration = 2 * (i + j)
-            schedule.every(10).minutes.do(
-                lambda: asyncio.create_task(
-                    check_end_point(region=region, tech=tech, endpoint='dailyStatsRegion', delay=delay_duration)))
-            schedule.every(10).minutes.do(
-                lambda: asyncio.create_task(
-                    check_end_point(region=region, tech=tech, endpoint='dailyStatsRegionFlex',
-                                    delay=delay_duration + 2)))
-            schedule.every(10).minutes.do(
-                lambda: asyncio.create_task(
-                    check_end_point(region=region, tech=tech, endpoint='hourlyStatsRegion', delay=delay_duration + 4)))
-            schedule.every(10).minutes.do(
-                lambda: asyncio.create_task(
-                    check_end_point(region=region, tech=tech, endpoint='hourlyStatsRegionFlex',
-                                    delay=delay_duration + 6)))
+            for k, endpoint in enumerate(endpoints):
+                delay_duration = 2 * (i + j)
+                # partial_func = partial(check_end_point, region=region, tech=tech, endpoint=endpoint,
+                #                        delay=delay_duration + k * 2)
+                # schedule.every(10).minutes.do(
+                #     lambda: asyncio.create_task(
+                #         partial_func()))
+                schedule.every(10).minutes.do(
+                    lambda region=region, tech=tech, endpoint=endpoint,
+                           delay=delay_duration + k * 2: asyncio.create_task(
+                        check_end_point(region=region, tech=tech, endpoint=endpoint, delay=delay_duration + k * 2)))
 
-    schedule.every(5).minutes.do(lambda: asyncio.create_task(check_end_point()))
-    schedule.every().day.at("19:00").do(lambda: asyncio.create_task(run_timing_advance_etl()))
-    schedule.every().sunday.at("22:00").do(lambda: asyncio.create_task(run_etl_network()))
-    schedule.every().monday.at("02:00").do(lambda: asyncio.create_task(run_etl_plmn()))
-    schedule.every().monday.at("12:00").do(lambda: asyncio.create_task(run_etl_plmn()))
-    schedule.every().tuesday.at("02:00").do(lambda: asyncio.create_task(run_etl_plmn()))
-    schedule.every().wednesday.at("02:00").do(lambda: asyncio.create_task(run_etl_plmn()))
-    schedule.every().thursday.at("02:00").do(lambda: asyncio.create_task(run_etl_plmn()))
-    schedule.every().monday.at("09:00").do(lambda: asyncio.create_task(run_busy_hour_tasks()))
+    if not debug:
+        await schedule_raster_tasks()
 
-    # schedule.every().hour.do(job)
-    # schedule.every(5).seconds.do(job)
-    # schedule.every().monday.do(job)
-    # schedule.every().wednesday.at("13:15").do(job)
-    # schedule.every().day.at("12:42", "Europe/Amsterdam").do(job)
-    # schedule.every().minute.at(":17").do(job)
+    if debug:
+        schedule.run_all()
 
     start_time = time.time()
     total_duration_to_run = 60 * 60 * 24 * 365
@@ -119,10 +111,21 @@ async def main():
         await asyncio.sleep(60)
 
 
+async def schedule_raster_tasks():
+    schedule.every().day.at("19:00").do(lambda: asyncio.create_task(run_timing_advance_etl()))
+    schedule.every().sunday.at("22:00").do(lambda: asyncio.create_task(run_etl_network()))
+    schedule.every().monday.at("02:00").do(lambda: asyncio.create_task(run_etl_plmn()))
+    schedule.every().monday.at("12:00").do(lambda: asyncio.create_task(run_etl_plmn()))
+    schedule.every().tuesday.at("02:00").do(lambda: asyncio.create_task(run_etl_plmn()))
+    schedule.every().wednesday.at("02:00").do(lambda: asyncio.create_task(run_etl_plmn()))
+    schedule.every().thursday.at("02:00").do(lambda: asyncio.create_task(run_etl_plmn()))
+    schedule.every().monday.at("09:00").do(lambda: asyncio.create_task(run_busy_hour_tasks()))
+
+
 if __name__ == '__main__':
     load_dotenv()
     try:
-        asyncio.run(main())
+        asyncio.run(main(debug=False))
     except Exception as e:
         logger.error(e)
     # nohup python -m utils.scheduled_tasks > output.log 2>&1 &

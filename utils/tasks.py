@@ -71,7 +71,8 @@ def retry_on_timeout(retries=1, delay=0):
 
 @retry_on_timeout(retries=1, delay=0)
 @clock
-async def check_end_point(timeout=25, region='ALL', tech='nr', endpoint='dailyStatsRegion', delay=0):
+async def check_end_point(timeout=25, region='ALL', tech='nr', endpoint='dailyStatsRegion', delay=1):
+    logger.debug(f'Checking end point: {endpoint} with region: {region} and tech: {tech}')
     url = f'http://localhost:4000/node/kpi/v1/{endpoint}?region={region}&tech={tech}'
     async with aiohttp.ClientSession() as session:
         await asyncio.sleep(delay)
