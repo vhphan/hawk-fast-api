@@ -51,13 +51,27 @@ async def run(cmd, working_dir=None):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE)
 
-    stdout, stderr = await proc.communicate()
+    while True:
+        line = await proc.stdout.readline()
+        if not line:
+            break
+        print(f'[stdout] {line.decode().strip()}')
 
+    while True:
+        line = await proc.stderr.readline()
+        if not line:
+            break
+        print(f'[stderr] {line.decode().strip()}')
+
+    await proc.wait()
     print(f'[{cmd!r} exited with {proc.returncode}]')
-    if stdout:
-        print(f'[stdout]\n{stdout.decode()}')
-    if stderr:
-        print(f'[stderr]\n{stderr.decode()}')
+    # stdout, stderr = await proc.communicate()
+    #
+    # print(f'[{cmd!r} exited with {proc.returncode}]')
+    # if stdout:
+    #     print(f'[stdout]\n{stdout.decode()}')
+    # if stderr:
+    #     print(f'[stderr]\n{stderr.decode()}')
     if working_dir:
         os.chdir(cwd)
 
