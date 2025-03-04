@@ -1,9 +1,10 @@
 import asyncio
 import json
 from datetime import datetime
+from typing import Optional
 
 from async_lru import alru_cache
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi import Response
 from loguru import logger
 from starlette.requests import Request
@@ -49,9 +50,26 @@ async def daily_cluster_stats(cluster_id: str, kpi_type: str, db: PgDB = Depends
 
 
 @router.get("/region/{time_unit}/{kpi_type}")
-def region_stats(kpi_type: str, time_unit: str):
+def region_stats(kpi_type: str, time_unit: str, band: Optional[str] = None):
+
     if time_unit not in ['daily', 'hourly']:
-        return {'success': False, 'message': f"Invalid time_unit: {time_unit}"}
+        return HTTPException(status_code=400, detail=f"Invalid time_unit: {time_unit}")
+    if band and band not in ['N3', 'N7']:
+        return HTTPException(status_code=400, detail=f"Invalid band: {band}")
+    if band:
+        json_file = f'static/data/{time_unit}_{kpi_type}_regions_v2.json'
+        with open(json_file, 'r') as f:
+            data = json.load(f)
+            return {
+                'success': True,
+                'data': data[band],
+                'meta': {
+                    'band': band,
+                    'kpi_type': kpi_type,
+                    'date_timestamp': datetime.now()
+                }
+            }
+
     json_file = f'static/data/{time_unit}_{kpi_type}_regions.json'
     with open(json_file, 'r') as f:
         data = json.load(f)

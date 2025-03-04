@@ -1,8 +1,9 @@
-insert into sa_kpi_results.dc_e_nr_events_nrcellcu_standard_sa_day
+insert into sa_kpi_results_v2.dc_e_nr_events_nrcellcu_standard_sa_day
 with dt as (select t1.date_id,
                    nrcellcu,
-                   "Region",
-                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID",
+                   "Region"                                                               as region,
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as cluster_id,
+                   band,
                    nr_name,
                    ho_success_rate_5g_nom,
                    ho_success_rate_5g_den,
@@ -13,15 +14,16 @@ with dt as (select t1.date_id,
                    average_number_of_user_rrc_den,
                    sa_max_rrc_connected_user_no
             from daily_stats.dc_e_nr_events_nrcellcu_standard_sa_day t1
-                     inner join dnb.rfdb.ob_cells_ref ob
+                     inner join dnb.rfdb.ob_cells_ref_v2 ob
                                 on t1.nrcellcu = ob."Cellname"
                                     and t1.date_id >= ob.on_board_date::date
             where t1.date_id not in (select date_id
-                                     from sa_kpi_results.dc_e_nr_events_nrcellcu_standard_sa_day
+                                     from sa_kpi_results_v2.dc_e_nr_events_nrcellcu_standard_sa_day
                                      group by date_id)),
      dt2 as (select date_id,
-                    "Region"                            as region,
-                    "Cluster_ID"                        as cluster_id,
+                    region,
+                    cluster_id,
+                    band,
                     sum(ho_success_rate_5g_nom)         as ho_success_rate_5g_nom,
                     sum(ho_success_rate_5g_den)         as ho_success_rate_5g_den,
                     sum(inter_rat_ho_success_rate_nom)  as inter_rat_ho_success_rate_nom,
@@ -31,10 +33,11 @@ with dt as (select t1.date_id,
                     sum(average_number_of_user_rrc_den) as average_number_of_user_rrc_den,
                     sum(sa_max_rrc_connected_user_no)   as sa_max_rrc_connected_user_no
              from dt
-             group by date_id, rollup ("Region", "Cluster_ID"))
+             group by date_id, rollup (band, region, cluster_id))
 select date_id,
        case when region is null then 'ALL' else region end,
        case when cluster_id is null then 'ALL' else cluster_id end,
+       case when band is null then 'ALL' else band end,
        100 * ho_success_rate_5g_nom ||| ho_success_rate_5g_den               as ho_success_rate_5g,
        100 * inter_rat_ho_success_rate_nom ||| inter_rat_ho_success_rate_den as inter_rat_ho_success,
        eps_fallback_attempt,
@@ -42,11 +45,12 @@ select date_id,
        sa_max_rrc_connected_user_no
 from dt2;
 
-insert into sa_kpi_results.dc_e_nr_events_nrcelldu_standard_sa_day
+insert into sa_kpi_results_v2.dc_e_nr_events_nrcelldu_standard_sa_day
 with dt as (select t1.date_id,
                    nrcelldu,
-                   "Region",
-                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID",
+                   "Region"                                                               as region,
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as cluster_id,
+                   band,
                    nr_name,
                    mean_user_dl_throughput_nr_nom,
                    mean_user_dl_throughput_nr_den,
@@ -66,15 +70,16 @@ with dt as (select t1.date_id,
                    total_traffic_volume_gb_nom,
                    total_traffic_volume_gb_den
             from daily_stats.dc_e_nr_events_nrcelldu_standard_sa_day t1
-                     inner join dnb.rfdb.ob_cells_ref ob
+                     inner join dnb.rfdb.ob_cells_ref_v2 ob
                                 on t1.nrcelldu = ob."Cellname"
                                     and t1.date_id >= ob.on_board_date::date
             where t1.date_id not in (select date_id
-                                     from sa_kpi_results.dc_e_nr_events_nrcelldu_standard_sa_day
+                                     from sa_kpi_results_v2.dc_e_nr_events_nrcelldu_standard_sa_day
                                      group by date_id)),
      dt2 as (select date_id,
-                    "Region"                               as region,
-                    "Cluster_ID"                           as cluster_id,
+                    region,
+                    cluster_id,
+                    band,
                     sum(mean_user_dl_throughput_nr_nom)    as mean_user_dl_throughput_nr_nom,
                     sum(mean_user_dl_throughput_nr_den)    as mean_user_dl_throughput_nr_den,
                     sum(mean_user_ul_throughput_nr_nom)    as mean_user_ul_throughput_nr_nom,
@@ -93,10 +98,11 @@ with dt as (select t1.date_id,
                     sum(total_traffic_volume_gb_nom)       as total_traffic_volume_gb_nom,
                     sum(total_traffic_volume_gb_den)       as total_traffic_volume_gb_den
              from dt
-             group by date_id, rollup ("Region", "Cluster_ID"))
+             group by date_id, rollup (band, region, cluster_id))
 select date_id,
        case when region is null then 'ALL' else region end,
        case when cluster_id is null then 'ALL' else cluster_id end,
+       case when band is null then 'ALL' else band end,
        mean_user_dl_throughput_nr_nom ||| mean_user_dl_throughput_nr_den as mean_user_dl_throughput_nr,
        mean_user_ul_throughput_nr_nom ||| mean_user_ul_throughput_nr_den as mean_user_ul_throughput_nr,
        dl_16qam_nom ||| modulation_dl_den                                as dl_16qam,
@@ -109,11 +115,12 @@ select date_id,
        total_traffic_volume_gb_nom ||| (1024 * 1024 * 1024)              as total_traffic_volume_gb
 from dt2;
 
-insert into sa_kpi_results.dc_e_nr_events_nrcellcu_v_standard_sa_day
+insert into sa_kpi_results_v2.dc_e_nr_events_nrcellcu_v_standard_sa_day
 with dt as (select t1.date_id,
                    nrcellcu,
-                   "Region",
-                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID",
+                   "Region"                                                               as region,
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as cluster_id,
+                   band,
                    nr_name,
                    vonr_call_setup_success_rate_nom,
                    vonr_call_setup_success_rate_den,
@@ -124,15 +131,16 @@ with dt as (select t1.date_id,
                    sa_data_session_abnormal_release_nom,
                    sa_data_session_abnormal_release_den
             from daily_stats.dc_e_nr_events_nrcellcu_v_standard_sa_day t1
-                     inner join dnb.rfdb.ob_cells_ref ob
+                     inner join dnb.rfdb.ob_cells_ref_v2 ob
                                 on t1.nrcellcu = ob."Cellname"
                                     and t1.date_id >= ob.on_board_date::date
             where t1.date_id not in (select date_id
-                                     from sa_kpi_results.dc_e_nr_events_nrcellcu_v_standard_sa_day
+                                     from sa_kpi_results_v2.dc_e_nr_events_nrcellcu_v_standard_sa_day
                                      group by date_id)),
      dt2 as (select date_id,
-                    "Region"                                    as region,
-                    "Cluster_ID"                                as cluster_id,
+                    region,
+                    cluster_id,
+                    band,
                     sum(vonr_call_setup_success_rate_nom)       as vonr_call_setup_success_rate_nom,
                     sum(vonr_call_setup_success_rate_den)       as vonr_call_setup_success_rate_den,
                     sum(vonr_drop_call_rate_nom)                as vonr_drop_call_rate_nom,
@@ -142,10 +150,11 @@ with dt as (select t1.date_id,
                     sum(sa_data_session_abnormal_release_nom)   as sa_data_session_abnormal_release_nom,
                     sum(sa_data_session_abnormal_release_den)   as sa_data_session_abnormal_release_den
              from dt
-             group by date_id, rollup ("Region", "Cluster_ID"))
+             group by date_id, rollup (band, region, cluster_id))
 select date_id,
        case when region is null then 'ALL' else region end,
        case when cluster_id is null then 'ALL' else cluster_id end,
+       case when band is null then 'ALL' else band end,
        100 * vonr_call_setup_success_rate_nom ||| vonr_call_setup_success_rate_den as vonr_call_setup_success_rate,
        100 * vonr_drop_call_rate_nom ||| vonr_drop_call_rate_den                   as vonr_drop_call_rate,
        100 * sa_data_session_setup_success_rate_nom |||
@@ -154,11 +163,12 @@ select date_id,
        sa_data_session_abnormal_release_den                                        as sa_data_session_abnormal_release
 from dt2;
 
-insert into sa_kpi_results.dc_e_nr_events_nrcelldu_flex_sa_day
+insert into sa_kpi_results_v2.dc_e_nr_events_nrcelldu_flex_sa_day
 with dt as (select t1.date_id,
                    nrcelldu,
-                   "Region",
-                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID",
+                   "Region"                                                               as region,
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as cluster_id,
+                   band,
                    nr_name,
                    flex_filtername_prefix                                                 as flex_filtername,
                    mean_user_dl_throughput_nr_nom,
@@ -179,15 +189,16 @@ with dt as (select t1.date_id,
                    total_traffic_volume_gb_nom,
                    total_traffic_volume_gb_den
             from daily_stats.dc_e_nr_events_nrcelldu_flex_sa_day t1
-                     inner join dnb.rfdb.ob_cells_ref ob
+                     inner join dnb.rfdb.ob_cells_ref_v2 ob
                                 on t1.nrcelldu = ob."Cellname"
                                     and t1.date_id >= ob.on_board_date::date
             where t1.date_id not in (select date_id
-                                     from sa_kpi_results.dc_e_nr_events_nrcelldu_flex_sa_day
+                                     from sa_kpi_results_v2.dc_e_nr_events_nrcelldu_flex_sa_day
                                      group by date_id)),
      dt2 as (select date_id,
-                    "Region"                               as region,
-                    "Cluster_ID"                           as cluster_id,
+                    region,
+                    cluster_id,
+                    band,
                     flex_filtername,
                     sum(mean_user_dl_throughput_nr_nom)    as mean_user_dl_throughput_nr_nom,
                     sum(mean_user_dl_throughput_nr_den)    as mean_user_dl_throughput_nr_den,
@@ -204,10 +215,11 @@ with dt as (select t1.date_id,
                     sum(rrc_resume_sr_den)                 as rrc_resume_sr_den,
                     sum(total_traffic_volume_gb_nom)       as total_traffic_volume_gb_nom
              from dt
-             group by date_id, flex_filtername, rollup ("Region", "Cluster_ID"))
+             group by date_id, flex_filtername, rollup (band, region, cluster_id))
 select date_id,
        case when region is null then 'ALL' else region end               as region,
        case when cluster_id is null then 'ALL' else cluster_id end       as cluster_id,
+       case when band is null then 'ALL' else band end                   as band,
        rfdb.lookup_mno_using_mccmnc(flex_filtername)                     as mno,
        mean_user_dl_throughput_nr_nom ||| mean_user_dl_throughput_nr_den as mean_user_dl_throughput_nr,
        mean_user_ul_throughput_nr_nom ||| mean_user_ul_throughput_nr_den as mean_user_ul_throughput_nr,
@@ -221,11 +233,12 @@ select date_id,
        total_traffic_volume_gb_nom ||| 1073741824                        as total_traffic_volume_gb
 from dt2;
 
-insert into sa_kpi_results.dc_e_nr_events_nrcellcu_flex_sa_day
+insert into sa_kpi_results_v2.dc_e_nr_events_nrcellcu_flex_sa_day
 with dt as (select t1.date_id,
                    nrcellcu,
-                   "Region",
-                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID",
+                   "Region"                                                               as region,
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as cluster_id,
+                   band,
                    flex_filtername,
                    nr_name,
                    ho_success_rate_5g_nom,
@@ -237,15 +250,16 @@ with dt as (select t1.date_id,
                    average_number_of_user_rrc_den,
                    sa_max_rrc_connected_user_no
             from daily_stats.dc_e_nr_events_nrcellcu_flex_sa_day t1
-                     inner join dnb.rfdb.ob_cells_ref ob
+                     inner join dnb.rfdb.ob_cells_ref_v2 ob
                                 on t1.nrcellcu = ob."Cellname"
                                     and t1.date_id >= ob.on_board_date::date
             where t1.date_id not in (select date_id
-                                     from sa_kpi_results.dc_e_nr_events_nrcellcu_flex_sa_day
+                                     from sa_kpi_results_v2.dc_e_nr_events_nrcellcu_flex_sa_day
                                      group by date_id)),
      dt2 as (select date_id,
-                    "Region"                            as region,
-                    "Cluster_ID"                        as cluster_id,
+                    region,
+                    cluster_id,
+                    band,
                     flex_filtername,
                     sum(ho_success_rate_5g_nom)         as ho_success_rate_5g_nom,
                     sum(ho_success_rate_5g_den)         as ho_success_rate_5g_den,
@@ -256,10 +270,11 @@ with dt as (select t1.date_id,
                     sum(average_number_of_user_rrc_den) as average_number_of_user_rrc_den,
                     sum(sa_max_rrc_connected_user_no)   as sa_max_rrc_connected_user_no
              from dt
-             group by date_id, flex_filtername, rollup ("Region", "Cluster_ID"))
+             group by date_id, flex_filtername, rollup (band, region, cluster_id))
 select date_id,
        case when region is null then 'ALL' else region end                   as region,
        case when cluster_id is null then 'ALL' else cluster_id end           as cluster_id,
+       case when band is null then 'ALL' else band end                       as band,
        rfdb.lookup_mno_using_mccmnc(flex_filtername)                         as mno,
        100 * ho_success_rate_5g_nom ||| ho_success_rate_5g_den               as ho_success_rate_5g,
        100 * inter_rat_ho_success_rate_nom ||| inter_rat_ho_success_rate_den as inter_rat_ho_success_rate,
@@ -268,7 +283,7 @@ select date_id,
        sa_max_rrc_connected_user_no
 from dt2;
 
-insert into sa_kpi_results.dl_prb_sa_nsa_flex_extended_day
+insert into sa_kpi_results_v2.dl_prb_sa_nsa_flex_extended_day
 with dt as (select t1.date_id,
                    nrcelldu,
                    case when mno = 'UMobile' then 'Umobile' when mno = 'Uni5G' then 'TM' else mno end as mno,
@@ -281,38 +296,42 @@ with dt as (select t1.date_id,
                    dnb_index,
                    "Site_Name",
                    on_board_date,
-                   "Region",
-                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID"
+                   "Region"                                                               as region,
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as cluster_id,
+                   band
             from daily_stats.dl_prb_sa_nsa_flex_extended_day t1
-                     inner join dnb.rfdb.ob_cells_ref ob
+                     inner join dnb.rfdb.ob_cells_ref_v2 ob
                                 on t1.nrcelldu = ob."Cellname"
                                     and t1.date_id >= ob.on_board_date::date
             where t1.date_id not in (select date_id
-                                     from sa_kpi_results.dl_prb_sa_nsa_flex_extended_day
+                                     from sa_kpi_results_v2.dl_prb_sa_nsa_flex_extended_day
                                      group by date_id)),
      dt2 as (select date_id,
-                    "Region"                          as region,
-                    "Cluster_ID"                      as cluster_id,
+                    region,
+                    cluster_id,
+                    band,
                     mno,
                     100 * sum(dl_prb_utilization_nom) as dl_prb_utilization_nom,
                     sum(dl_prb_utilization_den) as dl_prb_utilization_den,
                     100 * sum(ul_prb_utilization_nom) as ul_prb_utilization_nom,
                     sum(ul_prb_utilization_den) as ul_prb_utilization_den
              from dt
-             group by date_id, mno, rollup ("Region", "Cluster_ID"))
+             group by date_id, mno, rollup (band, region, cluster_id))
 select date_id,
        case when region is null then 'ALL' else region end,
        case when cluster_id is null then 'ALL' else cluster_id end,
+       case when band is null then 'ALL' else band end,
        mno,
        dl_prb_utilization_nom ||| dl_prb_utilization_den as dl_prb_utilization,
        ul_prb_utilization_nom ||| ul_prb_utilization_den as ul_prb_utilization
 from dt2;
 
-insert into sa_kpi_results.dc_e_nr_events_nrcellcu_v_flex_sa_day
+insert into sa_kpi_results_v2.dc_e_nr_events_nrcellcu_v_flex_sa_day
 with dt as (select t1.date_id,
                    nrcellcu,
-                   "Region",
-                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as "Cluster_ID",
+                   "Region"                                                               as region,
+                   case when "Cluster_ID" is null then 'No Cluster' else "Cluster_ID" end as cluster_id,
+                   band,
                    nr_name,
                    flex_filtername,
                    vonr_call_setup_success_rate_nom,
@@ -324,15 +343,16 @@ with dt as (select t1.date_id,
                    sa_data_session_abnormal_release_nom,
                    sa_data_session_abnormal_release_den
             from daily_stats.dc_e_nr_events_nrcellcu_v_flex_sa_day t1
-                     inner join dnb.rfdb.ob_cells_ref ob
+                     inner join dnb.rfdb.ob_cells_ref_v2 ob
                                 on t1.nrcellcu = ob."Cellname"
                                     and t1.date_id >= ob.on_board_date::date
             where t1.date_id not in (select date_id
-                                     from sa_kpi_results.dc_e_nr_events_nrcellcu_v_flex_sa_day
+                                     from sa_kpi_results_v2.dc_e_nr_events_nrcellcu_v_flex_sa_day
                                      group by date_id)),
      dt2 as (select date_id,
-                    "Region"                                    as region,
-                    "Cluster_ID"                                as cluster_id,
+                    region,
+                    cluster_id,
+                    band,
                     flex_filtername,
                     sum(vonr_call_setup_success_rate_nom)       as vonr_call_setup_success_rate_nom,
                     sum(vonr_call_setup_success_rate_den)       as vonr_call_setup_success_rate_den,
@@ -343,10 +363,11 @@ with dt as (select t1.date_id,
                     sum(sa_data_session_abnormal_release_nom)   as sa_data_session_abnormal_release_nom,
                     sum(sa_data_session_abnormal_release_den)   as sa_data_session_abnormal_release_den
              from dt
-             group by date_id, flex_filtername, rollup ("Region", "Cluster_ID"))
+             group by date_id, flex_filtername, rollup (band, region, cluster_id))
 select date_id,
        case when region is null then 'ALL' else region end,
        case when cluster_id is null then 'ALL' else cluster_id end,
+       case when band is null then 'ALL' else band end,
        dnb.rfdb.lookup_mno_using_mccmnc(flex_filtername)                           as mno,
        100 * vonr_call_setup_success_rate_nom ||| vonr_call_setup_success_rate_den as vonr_call_setup_success_rate,
        100 * vonr_drop_call_rate_nom ||| vonr_drop_call_rate_den                   as vonr_drop_call_rate,

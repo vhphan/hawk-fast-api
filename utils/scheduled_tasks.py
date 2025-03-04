@@ -6,6 +6,7 @@ import schedule
 from dotenv import load_dotenv
 from loguru import logger
 
+from utils.crons import insert_hourly_data, insert_hourly_data_v2
 from utils.helpers import run_python_module
 from utils.scheduler_config import TECHS, REGIONS
 
@@ -58,12 +59,20 @@ async def run_etl_plmn():
 
 
 async def run_busy_hour_tasks():
-    module_path = 'get_data.busy_hour.tasks.final_tasks'
-    module_path_plmn = 'get_data.busy_hour.tasks.final_tasks_plmn'
     working_dir = f'{PROJECT_PATH}/../hawk-data'
     python_path = f'{working_dir}/venv/bin/python'
+
+    module_path = 'get_data.busy_hour.tasks.final_tasks'
+    module_path_plmn = 'get_data.busy_hour.tasks.final_tasks_plmn'
+    module_path_daily = 'get_data.busy_hour.tasks.generate_daily'
+    module_path_plmn_daily = 'get_data.busy_hour.tasks.generate_daily_plmn'
+
     await run_python_module(module_path, python_path, working_dir)
     await run_python_module(module_path_plmn, python_path, working_dir)
+    await asyncio.gather(
+        run_python_module(module_path_daily, python_path, working_dir),
+        run_python_module(module_path_plmn_daily, python_path, working_dir)
+    )
 
 
 async def main(debug=False):
@@ -82,15 +91,11 @@ async def main(debug=False):
         for j, tech in enumerate(TECHS):
             for k, endpoint in enumerate(endpoints):
                 delay_duration = 2 * (i + j)
-                # partial_func = partial(check_end_point, region=region, tech=tech, endpoint=endpoint,
-                #                        delay=delay_duration + k * 2)
-                # schedule.every(10).minutes.do(
-                #     lambda: asyncio.create_task(
-                #         partial_func()))
                 schedule.every(10).minutes.do(
                     lambda region=region, tech=tech, endpoint=endpoint,
                            delay=delay_duration + k * 2: asyncio.create_task(
-                        check_end_point(region=region, tech=tech, endpoint=endpoint, delay=delay_duration + k * 2)))
+                        check_end_point(region=region, tech=tech, endpoint=endpoint, delay=delay_duration + k * 2))
+                )
 
     if not debug:
         await schedule_raster_tasks()
@@ -120,6 +125,13 @@ async def schedule_raster_tasks():
     schedule.every().wednesday.at("02:00").do(lambda: asyncio.create_task(run_etl_plmn()))
     schedule.every().thursday.at("02:00").do(lambda: asyncio.create_task(run_etl_plmn()))
     schedule.every().monday.at("09:00").do(lambda: asyncio.create_task(run_busy_hour_tasks()))
+
+
+async def schedule_sa_kpi_hourly_tasks():
+    schedule.every().hour().at(":15").do(lambda: asyncio.create_task(insert_hourly_data()))
+    schedule.every().hour().at(":15").do(lambda: asyncio.create_task(insert_hourly_data_v2()))
+    schedule.every().hour().at(":45").do(lambda: asyncio.create_task(insert_hourly_data()))
+    schedule.every().hour().at(":45").do(lambda: asyncio.create_task(insert_hourly_data_v2()))
 
 
 if __name__ == '__main__':

@@ -10,3 +10,12 @@ accept: application/json
 
 ###
 GET http://localhost:8009/
+
+
+###
+GET http://localhost:3388/v1/sa_kpi/region/daily/standard
+accept: application/json
+
+###
+GET http://localhost:3388/v1/sa_kpi/region/daily/standard?band=N3
+accept: application/json

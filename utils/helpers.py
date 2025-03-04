@@ -55,13 +55,13 @@ async def run(cmd, working_dir=None):
         line = await proc.stdout.readline()
         if not line:
             break
-        print(f'[stdout] {line.decode().strip()}')
+        print(f'{line.decode().strip()} [stdout]')
 
     while True:
         line = await proc.stderr.readline()
         if not line:
             break
-        print(f'[stderr] {line.decode().strip()}')
+        print(f'{line.decode().strip()} [stderr]')
 
     await proc.wait()
     print(f'[{cmd!r} exited with {proc.returncode}]')

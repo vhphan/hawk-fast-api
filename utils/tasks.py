@@ -100,3 +100,31 @@ def hard_restart_node_passenger():
 #     os.chdir(cur_dir)
 #     logger.info(f'Finished running python module: {module_path}')
 
+def log_error(func):
+    """
+    Decorator to log errors in a function
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error in function {func.__name__}: {e}")
+
+    return wrapper
+
+
+def log_error_async(func):
+    """
+    Decorator to log errors in an async function
+    """
+
+    @functools.wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error in function {func.__name__}: {e}")
+
+    return wrapper

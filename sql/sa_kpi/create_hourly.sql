@@ -359,9 +359,9 @@ with dt as (select t1.date_id,
                     "Cluster_ID"                      as cluster_id,
                     mno,
                     100 * sum(dl_prb_utilization_nom) as dl_prb_utilization_nom,
-                    100 * sum(dl_prb_utilization_den) as dl_prb_utilization_den,
+                    sum(dl_prb_utilization_den) as dl_prb_utilization_den,
                     100 * sum(ul_prb_utilization_nom) as ul_prb_utilization_nom,
-                    100 * sum(ul_prb_utilization_den) as ul_prb_utilization_den
+                    sum(ul_prb_utilization_den) as ul_prb_utilization_den
              from dt
              group by date_id, mno, rollup ("Region", "Cluster_ID"))
 select date_id,

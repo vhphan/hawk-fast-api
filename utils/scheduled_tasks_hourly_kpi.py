@@ -53,3 +53,6 @@ if __name__ == '__main__':
         asyncio.run(main())
     except Exception as e:
         logger.error(e)
+
+# nohup python -m utils.scheduled_tasks_hourly_kpi > output4.log 2>&1 &
+# kill -9 $(pgrep -f __scheduled_tasks_hourly_kpi__)

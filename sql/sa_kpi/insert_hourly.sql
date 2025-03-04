@@ -272,7 +272,7 @@ from dt2;
 insert into sa_kpi_results_hourly.dl_prb_sa_nsa_flex_extended_raw
 with dt as (select t1.date_id,
                    nrcelldu,
-                   mno,
+                   case when mno = 'UMobile' then 'Umobile' when mno = 'Uni5G' then 'TM' else mno end as mno,
                    nr_name,
                    dl_prb_utilization_nom,
                    dl_prb_utilization_den,
@@ -296,9 +296,9 @@ with dt as (select t1.date_id,
                     "Cluster_ID"                      as cluster_id,
                     mno,
                     100 * sum(dl_prb_utilization_nom) as dl_prb_utilization_nom,
-                    100 * sum(dl_prb_utilization_den) as dl_prb_utilization_den,
+                    sum(dl_prb_utilization_den) as dl_prb_utilization_den,
                     100 * sum(ul_prb_utilization_nom) as ul_prb_utilization_nom,
-                    100 * sum(ul_prb_utilization_den) as ul_prb_utilization_den
+                    sum(ul_prb_utilization_den) as ul_prb_utilization_den
              from dt
              group by date_id, mno, rollup ("Region", "Cluster_ID"))
 select date_id,

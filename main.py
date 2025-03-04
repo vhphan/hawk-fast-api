@@ -21,6 +21,7 @@ from utils.helpers import lock_file, unlock_file
 load_dotenv()
 logger.add("logs/main.log", rotation="1 day", retention="1 day")
 
+
 @asynccontextmanager
 async def lifespan(app_: FastAPI):
     # startup code here
@@ -44,9 +45,6 @@ async def lifespan(app_: FastAPI):
             asyncio.create_task(start_crons())
         else:
             logger.info("NO_CRON is set to True. Not starting crons")
-
-    # redis = aioredis.from_url("redis://localhost")
-    # FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
 
     yield
 
@@ -103,7 +101,7 @@ if os.getenv("INIT_CRONS", "false").lower() == "true":
 @app.get("/set_state/{key}/{value}")
 async def set_state(request: Request, key: str, value: str):
     await request.app.state.redis.set(key, value)
-    return {"message": f"State set for {key} with value {value}"}
+    return {"message": f"State was set for {key} with value {value}"}
 
 
 @app.get("/get_state/{key}")
@@ -114,8 +112,9 @@ async def get_state(request: Request, key: str):
 
 if __name__ == '__main__':
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8009)
 
-# nohup env proctitle=__uvi_fast__ uvicorn main:app --reload --host 0.0.0.0 --port 3388 > output.log 2>&1 &
+# nohup env proctitle=__uvi_fast__ uvicorn main:app --reload --host 0.0.0.0 --port 3388 > output5.log 2>&1 &
 # kill -9 $(pgrep -f "uvicorn main:app --reload --host 0.0.0.0 --port 3388")
 # kill -9 $(pgrep -f __uvi_fast__)
